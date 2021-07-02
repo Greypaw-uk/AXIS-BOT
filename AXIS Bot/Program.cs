@@ -1,41 +1,57 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using NodaTime;
 
 namespace AXIS_Bot
 {
 	class Program
 	{
-		private DiscordSocketClient _client;
         private bool isServerMonitorOn = false;
+
+		//Set environment to Live or Test
+        private bool isLiveEnvironment = false;
 
         public static void Main(string[] args)
 			=> new Program().MainAsync().GetAwaiter().GetResult();
 
 		public async Task MainAsync()
 		{
-			_client = new DiscordSocketClient();
-			_client.Log += Log;
+            Variables.Client = new DiscordSocketClient();
+            Variables.Client.Log += Log;
 
-			_client.MessageReceived += MessageReceived;
+            Variables.Client.MessageReceived += MessageReceived;
 
-			// LIVE
-			//await _client.LoginAsync(TokenType.Bot, "ODA3Mzk0NzI1MzkyMjg1NzE2.YB3W7w._ntuOOrB4TcmYUm1veb_3nexfaQ");
-                
-            // TEST
-			await _client.LoginAsync(TokenType.Bot, "ODA4MDkxMTgwODUxMTM0NTI2.YCBfjw.5hdsbmh5NtNGf4vq3DJE7M-Eq5M");
+            Variables.Client.UserJoined += HandleUserJoinedAsync;
 
-			await _client.StartAsync();
+            LoadUserLogs();
+
+            // Pick between live or test tokens
+            if (isLiveEnvironment)
+			    await Variables.Client.LoginAsync(TokenType.Bot, "ODA3Mzk0NzI1MzkyMjg1NzE2.YB3W7w._ntuOOrB4TcmYUm1veb_3nexfaQ");
+            else
+			    await Variables.Client.LoginAsync(TokenType.Bot, "ODA4MDkxMTgwODUxMTM0NTI2.YCBfjw.5hdsbmh5NtNGf4vq3DJE7M-Eq5M");
+
+			await Variables.Client.StartAsync();
 
 			if (GCW.eventsList.Count == 0)
 				GCW.PopulateEventList();
 
 			// Block this task until the program is closed.
 			await Task.Delay(-1);
-		}
+        }
+
+		//Create info of when a user joins the channel
+
+        private Task HandleUserJoinedAsync(SocketGuildUser gUser)
+        {
+            return Task.FromResult(UserLog.CreateUserLog(gUser));
+        }
 
 		private Task Log(LogMessage msg)
 		{
@@ -90,6 +106,12 @@ namespace AXIS_Bot
 
             if (chat.Equals("!serverstatus") && !chat.Equals("!about"))
                 await message.Channel.SendMessageAsync("The server is currently " + API.SWGStatus().ToLower());
+
+            if (chat.Contains("!prob") && !chat.Equals("!about"))
+            {
+                if (message.Author.Id == 275073686661234688)
+                    await message.Channel.SendMessageAsync(UserLog.GetUserJoinedDetails(chat));
+            }
         }
 
         private async Task LoopServerStatus(ISocketMessageChannel channel)
@@ -200,5 +222,31 @@ namespace AXIS_Bot
 
 			return sb.ToString();
 		}
+
+        private void LoadUserLogs()
+        {
+            if (File.Exists("UserLog.json"))
+            {
+                try
+                {
+                    //Deserialize existing json from log
+                    using StreamReader reader = new StreamReader("UserLog.json");
+                    {
+                        var json = reader.ReadToEnd();
+                        Variables.logList = JsonConvert.DeserializeObject<List<JoinLog>>(json);
+                    }
+
+                    Console.WriteLine("UserLog.json loaded");
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Unable to deserialize UserLog.json");
+                }
+            }
+            else
+            {
+                Console.WriteLine("UserLog.json not found");
+            }
+        }
 	}
 }
