@@ -1,11 +1,8 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using NodaTime;
 
 namespace AXIS_Bot
@@ -22,22 +19,26 @@ namespace AXIS_Bot
 
 		public async Task MainAsync()
 		{
-            Variables.Client = new DiscordSocketClient();
-            Variables.Client.Log += Log;
+            AppSettings.Client = new DiscordSocketClient();
+            AppSettings.Client.Log += Log;
+            //AppSettings.Client.Ready += ClientReady();
 
-            Variables.Client.MessageReceived += MessageReceived;
+            //Load Server Settings
+            AppSettings.LoadUserLogs();
+            AppSettings.LoadSettings();
+            //Probation.StartProbationLoop();
 
-            Variables.Client.UserJoined += HandleUserJoinedAsync;
+            AppSettings.Client.MessageReceived += MessageReceived;
 
-            LoadUserLogs();
+            AppSettings.Client.UserJoined += HandleUserJoinedAsync;
 
             // Pick between live or test tokens
             if (isLiveEnvironment)
-			    await Variables.Client.LoginAsync(TokenType.Bot, "ODA3Mzk0NzI1MzkyMjg1NzE2.YB3W7w._ntuOOrB4TcmYUm1veb_3nexfaQ");
+			    await AppSettings.Client.LoginAsync(TokenType.Bot, "ODA3Mzk0NzI1MzkyMjg1NzE2.YB3W7w._ntuOOrB4TcmYUm1veb_3nexfaQ");
             else
-			    await Variables.Client.LoginAsync(TokenType.Bot, "ODA4MDkxMTgwODUxMTM0NTI2.YCBfjw.5hdsbmh5NtNGf4vq3DJE7M-Eq5M");
+			    await AppSettings.Client.LoginAsync(TokenType.Bot, "ODA4MDkxMTgwODUxMTM0NTI2.YCBfjw.5hdsbmh5NtNGf4vq3DJE7M-Eq5M");
 
-			await Variables.Client.StartAsync();
+			await AppSettings.Client.StartAsync();
 
 			if (GCW.eventsList.Count == 0)
 				GCW.PopulateEventList();
@@ -47,10 +48,9 @@ namespace AXIS_Bot
         }
 
 		//Create info of when a user joins the channel
-
         private Task HandleUserJoinedAsync(SocketGuildUser gUser)
         {
-            return Task.FromResult(UserLog.CreateUserLog(gUser));
+            return Task.FromResult(Probation.CreateUserLog(gUser));
         }
 
 		private Task Log(LogMessage msg)
@@ -63,25 +63,31 @@ namespace AXIS_Bot
 		{
 			string chat = message.Content.ToLower();
 
+            //Begin the GCW Barker
 			if (chat.Equals("!gcwstart") && !chat.Equals("!about"))
 				GCW.LoopBarker(message.Channel);
 
+            //Stop GCW Barker
 			if (chat.Equals("!gcwstop") && !chat.Equals("!about"))
 			{
 				GCW.IsLoopStarted = false;
 				await message.Channel.SendMessageAsync("Stopping GCW Barker...");
 			}
 
+            //Sets number of minutes before a GCW battle that alert is sent
 			if (chat.Contains("!settime") && !chat.Equals("!about"))
 			{
-				GCW.TimeOffset = GCW.TrimTime(chat);
+				AppSettings.TimeOffset = GCW.TrimTime(chat);
+                AppSettings.WriteSettings();
 
-				await message.Channel.SendMessageAsync("Alert time set to " + GCW.TimeOffset + " minutes.");
+				await message.Channel.SendMessageAsync("Alert time set to " + AppSettings.TimeOffset + " minutes.");
 			}
 
+            //Get Help message
 			if (chat.Equals("!about"))
 				await message.Channel.SendMessageAsync(Help());
 
+            //Get info on next GCW Battle
 			if (chat.Equals("!gcwnext") && !chat.Equals("!about"))
 			{
 				var next = GCW.GCWNext();
@@ -92,26 +98,26 @@ namespace AXIS_Bot
 					await message.Channel.SendMessageAsync("Unable to retrieve next battle");
 			}
 
+            //Display settings
 			if (chat.Equals("!status") && !chat.Equals("!about"))
 				await message.Channel.SendMessageAsync(RexStatus());
 
-			if (chat.Contains("!skills") && !chat.Equals("!about"))
-			{
-				Skills.ResetSkills();
-				await message.Channel.SendMessageAsync(Skills.AllSkills(chat));
-			}
-
+            //Turn on Server monitor
             if (chat.Contains("!servermonitor") && !chat.Equals("!about"))
                 LoopServerStatus(message.Channel);
 
+            //Get current server status
             if (chat.Equals("!serverstatus") && !chat.Equals("!about"))
                 await message.Channel.SendMessageAsync("The server is currently " + API.SWGStatus().ToLower());
 
-            if (chat.Contains("!prob") && !chat.Equals("!about"))
-            {
+            //Get user's probation info
+            if (chat.Contains("!getprob") && !chat.Equals("!about"))
                 if (message.Author.Id == 275073686661234688)
-                    await message.Channel.SendMessageAsync(UserLog.GetUserJoinedDetails(chat));
-            }
+                    await message.Channel.SendMessageAsync(Probation.GetUserJoinedDetails(chat));
+            
+            //Set number of probation days
+            if (chat.Contains("!problength") && !chat.Equals("!about"))
+                await message.Channel.SendMessageAsync(Probation.SetProbationPeriod(chat));
         }
 
         private async Task LoopServerStatus(ISocketMessageChannel channel)
@@ -185,11 +191,7 @@ namespace AXIS_Bot
 				
                 "Command: !status \n" +
 				"Result: Returns bot's current settings. \n\n" +
-				
-                "Command: !skills [str] [con] [sta] [pre] [agi] [lck]\n" +
-				"Results: Returns skill modifiers based on character's attributes. Attributes must be separated by a space e.g." +
-						"'!skills 100 100 100 100 100 100'.\n\n" +
-				
+
                 "Command: !servermonitor \n" +
 				"Result: Checks for changes to the SWG server status every 60 seconds and gives alerts when the status changes. \n\n" +
 				
@@ -212,7 +214,7 @@ namespace AXIS_Bot
                 sb.Append("GCW Barker is off.\n");
 
 			sb.Append("Alert time set to ");
-			sb.Append(GCW.TimeOffset);
+			sb.Append(AppSettings.TimeOffset);
 			sb.Append(" minutes.\n");
 
             if (isServerMonitorOn)
@@ -223,30 +225,18 @@ namespace AXIS_Bot
 			return sb.ToString();
 		}
 
-        private void LoadUserLogs()
+        private async Task ClientReady()
         {
-            if (File.Exists("UserLog.json"))
-            {
-                try
-                {
-                    //Deserialize existing json from log
-                    using StreamReader reader = new StreamReader("UserLog.json");
-                    {
-                        var json = reader.ReadToEnd();
-                        Variables.logList = JsonConvert.DeserializeObject<List<JoinLog>>(json);
-                    }
-
-                    Console.WriteLine("UserLog.json loaded");
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Unable to deserialize UserLog.json");
-                }
-            }
-            else
-            {
-                Console.WriteLine("UserLog.json not found");
-            }
+            //Load Server Settings
+            AppSettings.LoadUserLogs();
+            AppSettings.LoadSettings();
+            Probation.StartProbationLoop();
         }
-	}
+
+        public static void SendMessageToChannel(string message)
+        {
+            var channel = AppSettings.Client.GetGuild(808342010893303858).GetChannel(808342010893303861) as ISocketMessageChannel;
+            channel.SendMessageAsync(message);
+        }
+    }
 }

@@ -21,7 +21,6 @@ namespace AXIS_Bot
         public static List<GCWEvent> eventsList = new List<GCWEvent>();
 
         public static bool IsLoopStarted;
-        public static int TimeOffset = 10;
 
         public static async Task LoopBarker(ISocketMessageChannel channel)
         {
@@ -39,7 +38,7 @@ namespace AXIS_Bot
                 var mins = nowUTC.Minute;
                 var secs = nowUTC.Second;
 
-                if (!isMessageSent && secs <= 1 && mins == (60 - TimeOffset))
+                if (!isMessageSent && secs <= 1 && mins == (60 - AppSettings.TimeOffset))
                 {
                     foreach (var entry in eventsList.Where(entry => entry.Hour == hours))
                     {
@@ -68,7 +67,7 @@ namespace AXIS_Bot
             outcome.Append(": ");
             outcome.Append(entry.Message);
             outcome.Append(" starts in ");
-            outcome.Append(TimeOffset);
+            outcome.Append(AppSettings.TimeOffset);
             outcome.Append(" minutes!");
 
             if (!string.IsNullOrEmpty(entry.Coords))
