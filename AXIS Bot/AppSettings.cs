@@ -69,19 +69,19 @@ namespace AXIS_Bot
                     using StreamReader reader = new StreamReader("UserLog.json");
                     {
                         var json = reader.ReadToEnd();
-                        AppSettings.logList = JsonConvert.DeserializeObject<List<JoinLog>>(json);
+                        logList = JsonConvert.DeserializeObject<List<JoinLog>>(json);
                     }
 
-                    //Program.SendMessageToChannel("UserLog.json loaded");
+                    Program.SendMessageToChannel("Users loaded");
                 }
                 catch (Exception)
                 {
-                    //Program.SendMessageToChannel("Unable to deserialize UserLog.json");
+                    Program.SendMessageToChannel("Unable to deserialize Users");
                 }
             }
             else
             {
-                //Program.SendMessageToChannel("UserLog.json not found");
+                Program.SendMessageToChannel("Users not found");
             }
         }
     }

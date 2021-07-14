@@ -3,16 +3,13 @@ using Discord.WebSocket;
 using System;
 using System.Text;
 using System.Threading.Tasks;
-using NodaTime;
 
 namespace AXIS_Bot
 {
 	class Program
 	{
-        private bool isServerMonitorOn = false;
-
-		//Set environment to Live or Test
-        private bool isLiveEnvironment = false;
+        //Set environment to Live or Test
+        private bool isLiveEnvironment = true;
 
         public static void Main(string[] args)
 			=> new Program().MainAsync().GetAwaiter().GetResult();
@@ -21,12 +18,7 @@ namespace AXIS_Bot
 		{
             AppSettings.Client = new DiscordSocketClient();
             AppSettings.Client.Log += Log;
-            //AppSettings.Client.Ready += ClientReady();
-
-            //Load Server Settings
-            AppSettings.LoadUserLogs();
-            AppSettings.LoadSettings();
-            //Probation.StartProbationLoop();
+            AppSettings.Client.Ready += ClientReady;
 
             AppSettings.Client.MessageReceived += MessageReceived;
 
@@ -104,11 +96,11 @@ namespace AXIS_Bot
 
             //Turn on Server monitor
             if (chat.Contains("!servermonitor") && !chat.Equals("!about"))
-                LoopServerStatus(message.Channel);
+                ServerMonitor.LoopServerStatus(message.Channel);
 
             //Get current server status
             if (chat.Equals("!serverstatus") && !chat.Equals("!about"))
-                await message.Channel.SendMessageAsync("The server is currently " + API.SWGStatus().ToLower());
+                await message.Channel.SendMessageAsync("The server is currently " + ServerMonitor.SWGStatus().ToLower());
 
             //Get user's probation info
             if (chat.Contains("!getprob") && !chat.Equals("!about"))
@@ -120,59 +112,6 @@ namespace AXIS_Bot
                 await message.Channel.SendMessageAsync(Probation.SetProbationPeriod(chat));
         }
 
-        private async Task LoopServerStatus(ISocketMessageChannel channel)
-        {
-            bool isMessageSent = false;
-            string previousStatus = string.Empty;
-            isServerMonitorOn = true;
-
-            await channel.SendMessageAsync("Running server monitor...");
-
-            if (string.IsNullOrEmpty(previousStatus))
-                previousStatus = API.SWGStatus();
-
-            while (isServerMonitorOn)
-            {
-                var now = SystemClock.Instance.GetCurrentInstant();
-                var secs = now.InUtc().Second;
-
-                if (!isMessageSent && secs < 2)
-                {
-                    var currentStatus = API.SWGStatus();
-
-                    if (!currentStatus.Equals(previousStatus))
-                    {
-                        if (previousStatus.Equals("offline") || previousStatus.Equals("loading"))
-                        {
-                            if (currentStatus.Equals("online"))
-                            {
-                                await channel.SendMessageAsync("Server back online.");
-                                isMessageSent = true;
-                            }
-						}
-                        else if (previousStatus.Equals("online") || previousStatus.Equals("loading"))
-                        {
-                            if (currentStatus.Equals("offline"))
-                            {
-                                await channel.SendMessageAsync("Server has gone offline.");
-                                isMessageSent = true;
-                            }
-						}
-                    }
-
-                    previousStatus = currentStatus;
-				}
-
-                //Throttle the bot for a couple of seconds to stop multiple messages going out on faster CPUs
-                if (isMessageSent)
-                {
-                    await Task.Delay(2000);
-                    isMessageSent = false;
-                }
-
-                await Task.Delay(60000);
-            }
-		}
 
 		private string Help()
 		{
@@ -217,7 +156,7 @@ namespace AXIS_Bot
 			sb.Append(AppSettings.TimeOffset);
 			sb.Append(" minutes.\n");
 
-            if (isServerMonitorOn)
+            if (ServerMonitor.isServerMonitorOn)
                 sb.Append("Server monitor is on.");
             else
                 sb.Append("Server monitor is off.");
@@ -231,6 +170,9 @@ namespace AXIS_Bot
             AppSettings.LoadUserLogs();
             AppSettings.LoadSettings();
             Probation.StartProbationLoop();
+
+            var channel = AppSettings.Client.GetGuild(808342010893303858).GetChannel(808342010893303861) as ISocketMessageChannel;
+            channel.SendMessageAsync("Settings loaded");
         }
 
         public static void SendMessageToChannel(string message)
