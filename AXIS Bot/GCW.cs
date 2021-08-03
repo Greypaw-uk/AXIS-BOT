@@ -44,7 +44,7 @@ namespace AXIS_Bot
                     {
                         isMessageSent = true;
                         var outcome = BarkerMessage(entry);
-                        Console.WriteLine(outcome);
+                        Console.WriteLine(DateTime.Now + ": " + outcome);
                         await channel.SendMessageAsync(outcome);
                     }
                 }

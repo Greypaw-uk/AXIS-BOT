@@ -112,7 +112,6 @@ namespace AXIS_Bot
                 await message.Channel.SendMessageAsync(Probation.SetProbationPeriod(chat));
         }
 
-
 		private string Help()
 		{
 			var help =
@@ -171,14 +170,22 @@ namespace AXIS_Bot
             AppSettings.LoadSettings();
             Probation.StartProbationLoop();
 
-            var channel = AppSettings.Client.GetGuild(808342010893303858).GetChannel(808342010893303861) as ISocketMessageChannel;
+            var channel = AppSettings.Client.GetGuild(663179986441732131).GetChannel(807743051798675473) as ISocketMessageChannel;
             channel.SendMessageAsync("Settings loaded");
         }
 
         public static void SendMessageToChannel(string message)
         {
-            var channel = AppSettings.Client.GetGuild(808342010893303858).GetChannel(808342010893303861) as ISocketMessageChannel;
-            channel.SendMessageAsync(message);
+            try
+            {
+                var channel = AppSettings.Client.GetGuild(663179986441732131).GetChannel(807743051798675473) as ISocketMessageChannel;
+                channel.SendMessageAsync(message);
+            }
+            catch (Exception a)
+            {
+                Console.WriteLine("Program.SendMessageToChannel Failed: " + a.Message);
+                throw;
+            }
         }
     }
 }

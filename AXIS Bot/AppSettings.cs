@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using Discord.WebSocket;
 using Newtonsoft.Json;
@@ -29,6 +28,8 @@ namespace AXIS_Bot
         {
             if (File.Exists("Settings.json"))
             {
+                Console.WriteLine("Settings file located");
+
                 var settings = new Settings();
 
                 //Deserialize existing json from log
@@ -40,10 +41,11 @@ namespace AXIS_Bot
 
                 AppSettings.ProbationDays = settings.ProbationPeriod;
                 TimeOffset = settings.GCWTimer;
+                Console.WriteLine("Settings loaded");
             }
             else
             {
-                Debug.WriteLine("Settings.json not found");
+                Console.WriteLine("Settings file not found");
             }
         }
 
@@ -63,6 +65,7 @@ namespace AXIS_Bot
         {
             if (File.Exists("UserLog.json"))
             {
+                Console.WriteLine("Userlog located");
                 try
                 {
                     //Deserialize existing json from log
@@ -72,16 +75,16 @@ namespace AXIS_Bot
                         logList = JsonConvert.DeserializeObject<List<JoinLog>>(json);
                     }
 
-                    Program.SendMessageToChannel("Users loaded");
+                    Console.WriteLine("Userlog loaded");
                 }
                 catch (Exception)
                 {
-                    Program.SendMessageToChannel("Unable to deserialize Users");
+                    Console.WriteLine("Unable to deserialize Users");
                 }
             }
             else
             {
-                Program.SendMessageToChannel("Users not found");
+                Console.WriteLine("Userlog not found");
             }
         }
     }

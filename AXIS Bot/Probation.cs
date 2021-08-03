@@ -40,7 +40,7 @@ namespace AXIS_Bot
                 string logs = JsonConvert.SerializeObject(AppSettings.logList, Formatting.Indented);
                 File.WriteAllText("UserLog.json", logs);
 
-                Console.WriteLine("User \'" + AppSettings.Client.GetUser(log.User) + "\' has joined the channel.");
+                Console.WriteLine(DateTime.Now + ": " + "User \'" + AppSettings.Client.GetUser(log.User) + "\' has joined the channel.");
 
                 return true;
             }
