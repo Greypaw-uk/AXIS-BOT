@@ -15,7 +15,7 @@ namespace AXIS_Bot
 			=> new Program().MainAsync().GetAwaiter().GetResult();
 
 		public async Task MainAsync()
-		{
+        {
             AppSettings.Client = new DiscordSocketClient();
             AppSettings.Client.Log += Log;
             AppSettings.Client.Ready += ClientReady;
@@ -26,9 +26,9 @@ namespace AXIS_Bot
 
             // Pick between live or test tokens
             if (isLiveEnvironment)
-			    await AppSettings.Client.LoginAsync(TokenType.Bot, "ODA3Mzk0NzI1MzkyMjg1NzE2.YB3W7w._ntuOOrB4TcmYUm1veb_3nexfaQ");
+			    await AppSettings.Client.LoginAsync(TokenType.Bot, Tokens.LiveToken);
             else
-			    await AppSettings.Client.LoginAsync(TokenType.Bot, "ODA4MDkxMTgwODUxMTM0NTI2.YCBfjw.5hdsbmh5NtNGf4vq3DJE7M-Eq5M");
+			    await AppSettings.Client.LoginAsync(TokenType.Bot, Tokens.TestToken);
 
 			await AppSettings.Client.StartAsync();
 

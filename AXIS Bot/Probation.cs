@@ -84,7 +84,7 @@ namespace AXIS_Bot
 
         public static async void StartProbationLoop()
         {
-            Program.SendMessageToChannel("Probation loop started");
+            //Program.SendMessageToChannel("Probation loop started");
 
             var now = DateTime.Now;
             var tomorrow = now.AddDays(1);
