@@ -35,7 +35,7 @@ namespace AXIS_Bot
 			if (GCW.eventsList.Count == 0)
 				GCW.PopulateEventList();
 
-			// Block this task until the program is closed.
+            // Block this task until the program is closed.
 			await Task.Delay(-1);
         }
 
@@ -54,17 +54,6 @@ namespace AXIS_Bot
 		private async Task MessageReceived(SocketMessage message)
 		{
 			string chat = message.Content.ToLower();
-
-            //Begin the GCW Barker
-			if (chat.Equals("!gcwstart") && !chat.Equals("!about"))
-				GCW.LoopBarker(message.Channel);
-
-            //Stop GCW Barker
-			if (chat.Equals("!gcwstop") && !chat.Equals("!about"))
-			{
-				GCW.IsLoopStarted = false;
-				await message.Channel.SendMessageAsync("Stopping GCW Barker...");
-			}
 
             //Sets number of minutes before a GCW battle that alert is sent
 			if (chat.Contains("!settime") && !chat.Equals("!about"))
@@ -166,24 +155,46 @@ namespace AXIS_Bot
         private async Task ClientReady()
         {
             //Load Server Settings
-            AppSettings.LoadUserLogs();
-            AppSettings.LoadSettings();
-            Probation.StartProbationLoop();
+            try
+            {
+                AppSettings.LoadUserLogs();
+                AppSettings.LoadSettings();
+                Probation.StartProbationLoop();
 
-            var channel = AppSettings.Client.GetGuild(663179986441732131).GetChannel(807743051798675473) as ISocketMessageChannel;
-            channel.SendMessageAsync("Settings loaded");
+                SendMessageToChannel("Settings loaded.");
+            }
+            catch (Exception e)
+            {
+                SendMessageToChannel("Failed to load settings.");
+                Console.WriteLine(e);
+            }
+
+            // GCW Barker
+            try
+            {
+                GCW.GCWBarker();
+                SendMessageToChannel("GCW Barker started.");
+            }
+            catch (Exception e)
+            {
+                SendMessageToChannel("Failed to start GCW Barker");
+                Console.WriteLine(e);
+            }
         }
 
-        public static void SendMessageToChannel(string message)
+        public static async Task SendMessageToChannel(string message)
         {
             try
             {
-                var channel = AppSettings.Client.GetGuild(663179986441732131).GetChannel(807743051798675473) as ISocketMessageChannel;
-                channel.SendMessageAsync(message);
+                var guildID = AppSettings.GuildID;
+                var channelID = AppSettings.ChannelID;
+
+                var channel = AppSettings.Client.GetGuild(guildID).GetChannel(channelID) as ISocketMessageChannel;
+                await channel.SendMessageAsync(message);
             }
-            catch (Exception a)
+            catch (Exception e)
             {
-                Console.WriteLine("Program.SendMessageToChannel Failed: " + a.Message);
+                Console.WriteLine("Program.SendMessageToChannel Failed: " + e.Message);
                 throw;
             }
         }

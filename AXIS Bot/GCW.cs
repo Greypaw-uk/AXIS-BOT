@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Discord.WebSocket;
 using NodaTime;
 
 namespace AXIS_Bot
@@ -21,44 +20,6 @@ namespace AXIS_Bot
         public static List<GCWEvent> eventsList = new List<GCWEvent>();
 
         public static bool IsLoopStarted;
-
-        public static async Task LoopBarker(ISocketMessageChannel channel)
-        {
-            bool isMessageSent = false;
-            IsLoopStarted = true;
-
-            await channel.SendMessageAsync("Starting GCW Barker...");
-
-            while (IsLoopStarted)
-            {
-                var now = SystemClock.Instance.GetCurrentInstant();
-                var nowUTC = now.InUtc();
-
-                var hours = nowUTC.Hour;
-                var mins = nowUTC.Minute;
-                var secs = nowUTC.Second;
-
-                if (!isMessageSent && secs <= 1 && mins == (60 - AppSettings.TimeOffset))
-                {
-                    foreach (var entry in eventsList.Where(entry => entry.Hour == hours))
-                    {
-                        isMessageSent = true;
-                        var outcome = BarkerMessage(entry);
-                        Console.WriteLine(DateTime.Now + ": " + outcome);
-                        await channel.SendMessageAsync(outcome);
-                    }
-                }
-
-                //Throttle the bot for a couple of seconds to stop multiple messages going out on faster CPUs
-                if (isMessageSent)
-                {
-                    await Task.Delay(2000);
-                    isMessageSent = false;
-                }
-
-                await Task.Delay(1000);
-            }
-        }
 
         private static string BarkerMessage(GCWEvent entry)
         {
@@ -303,6 +264,42 @@ namespace AXIS_Bot
                 convertedTime = 0;
 
             return convertedTime;
+        }
+
+        public static async Task GCWBarker()
+        {
+            bool isMessageSent = false;
+            IsLoopStarted = true;
+
+            while (IsLoopStarted)
+            {
+                var now = SystemClock.Instance.GetCurrentInstant();
+                var nowUTC = now.InUtc();
+
+                var hours = nowUTC.Hour;
+                var mins = nowUTC.Minute;
+                var secs = nowUTC.Second;
+
+                if (!isMessageSent && secs <= 1 && mins == (60 - AppSettings.TimeOffset))
+                {
+                    foreach (var entry in eventsList.Where(entry => entry.Hour == hours))
+                    {
+                        isMessageSent = true;
+                        var outcome = BarkerMessage(entry);
+                        Console.WriteLine(DateTime.Now + ": " + outcome);
+                        Program.SendMessageToChannel(outcome);
+                    }
+                }
+
+                //Throttle the bot for a couple of seconds to stop multiple messages going out on faster CPUs
+                if (isMessageSent)
+                {
+                    await Task.Delay(2000);
+                    isMessageSent = false;
+                }
+
+                await Task.Delay(1000);
+            }
         }
     }
 }

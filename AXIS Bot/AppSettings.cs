@@ -10,6 +10,8 @@ namespace AXIS_Bot
     {
         public int ProbationPeriod { get; set; }
         public int GCWTimer { get; set; }
+        public string GuildID { get; set; }
+        public string ChannelID { get; set; }
     }
 
     public static class AppSettings
@@ -23,6 +25,10 @@ namespace AXIS_Bot
         //GCW
         public static int TimeOffset = 10;
 
+        // Channel Tokens
+        public static ulong GuildID;
+        public static ulong ChannelID;
+
 
         public static void LoadSettings()
         {
@@ -30,7 +36,7 @@ namespace AXIS_Bot
             {
                 Console.WriteLine("Settings file located");
 
-                var settings = new Settings();
+                Settings settings;
 
                 //Deserialize existing json from log
                 using StreamReader reader = new StreamReader("Settings.json");
@@ -39,8 +45,11 @@ namespace AXIS_Bot
                     settings = JsonConvert.DeserializeObject<Settings>(json);
                 }
 
-                AppSettings.ProbationDays = settings.ProbationPeriod;
+                ProbationDays = settings.ProbationPeriod;
                 TimeOffset = settings.GCWTimer;
+                GuildID = Convert.ToUInt64(settings.GuildID);
+                ChannelID = Convert.ToUInt64(settings.ChannelID);
+
                 Console.WriteLine("Settings loaded");
             }
             else
@@ -53,11 +62,13 @@ namespace AXIS_Bot
         {
             Settings settings = new Settings
             {
-                ProbationPeriod = AppSettings.ProbationDays,
-                GCWTimer = TimeOffset
+                ProbationPeriod = ProbationDays,
+                GCWTimer = TimeOffset,
+                GuildID = GuildID.ToString(),
+                ChannelID = ChannelID.ToString()
             };
 
-            string _settings = JsonConvert.SerializeObject(settings, Formatting.Indented);
+            var _settings = JsonConvert.SerializeObject(settings, Formatting.Indented);
             File.WriteAllText("Settings.json", _settings);
         }
 
