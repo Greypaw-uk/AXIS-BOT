@@ -15,6 +15,7 @@ namespace AXIS_Bot
         public string Date { get; set; }
     }
 
+    // hello
     static class Probation
     {
         public static bool CreateUserLog(SocketGuildUser gUser)
